@@ -1,3 +1,16 @@
-<votes></votes>
-<error></error>
-hi
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vote for Thingy!</title>
+    <link action = "/vote" rel="stylesheet" href="./css/style.css"></link>
+</head>
+<body>
+    <form method = "POST" id="voteForm">
+        <input type="text" name="id" placeholder="Enter your citizen ID"></input>
+        <input type="text" name="vote" placeholder="Enter your vote"></input>
+        <input type="submit" value="Submit">
+    </form>
+    <%= statusMessage %>
+</body>
+</html>
+<script src="/js/script.js"></script>
