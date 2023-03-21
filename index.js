@@ -2,16 +2,19 @@
 const express = require('express');
 const fs = require('fs');
 const app = express();
-const MongoClient = require('mongodb').MongoClient;
+const MongoClient = require('mongodb').MongoClient
 const path = require('path');
+const bodyParser = require('body-parser')
 require('dotenv').config()
 
 app.use(express.static(__dirname + '/public'));
+app.use(bodyParser());
 app.set('view engine', 'ejs');
 
 //Create MongoDB Client
 const uri = process.env.MONGODB_STRING
-const client = new MongoClient(uri, { useNewUrlParser: true });
+let mongoClient = new MongoClient(uri);
+// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true});
 
 
 app.get("/", async (req, res) => {
@@ -22,37 +25,42 @@ app.get("/", async (req, res) => {
     res.redirect("/vote")
 })
 
-app.post("/vote", (req, res) => {
-    console.log(req.body.id)
-    if (req.body.id == null || req.body.vote == null) {
+app.post("/vote", async (req, res) => {
+    if (req.body.id == null || req.body.vote == null || req.body.issue == null) {
         res.render(__dirname + "/public/index.ejs", {statusMessage: "Please enter your citizen ID and vote!"})
         return;
     }
     const citizenID = req.body.id;
     const vote = req.body.vote;
+    const issue = req.body.issue
     if (vote.toLowerCase() == "quantity1" || vote.toLowerCase() == "quantity2") {
-        client.connect(process.env.MONGODB_STRING, async (err, db) => {
+        await mongoClient.connect(async (err, db) => {
+            console.log("hello")
             if (err) throw (err)
             else {
-                 const voteCollection = db.db("WyattApp").collection("votes")
-                 const citizenCollection = db.db("WyattApp").collection("citizens")
-                 collection.findOne({ citizenID: citizenID }, async (err, result) => {
+                console.log("connected")
+                 const voteCollection = db.db("WyattSite").collection("votes")
+                 const citizenCollection = db.db("WyattSite").collection("citizens")
+                 citizenCollection.findOne({ citizenID: citizenID }, async (err, result) => {
                       if (err) throw (err)
                       if (result != null) {
                         if (result.hasVoted == true) {
                             res.render(__dirname + "/public/index.ejs", {statusMessage: "You've already voted!"})
-                        }
-                           await db.close()
-                      } else {
-                           collection.updateOne({ citizenID: citizenID }, {
-                            $set: {
-                                hasVoted: true
-                            }
-                           }, async (err, result) => {
+                        } else {
+                            citizenCollection.updateOne({ citizenID: citizenID }, {
+                                $set: {
+                                    hasVoted: true
+                                }
+                            }, async (err, result) => {
                                 if (err) throw (err)
                                 res.render(__dirname + "/public/index.ejs", {statusMessage: "Voted successfully! Check back later for the results!"})
                                 await db.close()
-                           })
+                            })
+                        }
+                           await db.close()
+                      } else {
+                           await db.close()
+                           res.render(__dirname + "/public/index.ejs", {statusMessage: "Enter a valid citizen ID!"})
                       }
                  })
             }
@@ -62,7 +70,7 @@ app.post("/vote", (req, res) => {
     }
 })
 
-app.listen(3001, () => {
+app.listen(3000, () => {
     console.log('started on port 3000');
 });
 
