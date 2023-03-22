@@ -4,7 +4,8 @@ const fs = require('fs');
 const app = express();
 const MongoClient = require('mongodb').MongoClient
 const path = require('path');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
+const { ConnectionClosedEvent } = require('mongodb');
 require('dotenv').config()
 
 app.use(express.static(__dirname + '/public'));
@@ -33,17 +34,31 @@ app.post("/vote", async (req, res) => {
     const citizenID = req.body.id;
     const vote = req.body.vote;
     const issue = req.body.issue
-    if (vote.toLowerCase() == "quantity1" || vote.toLowerCase() == "quantity2") {
-        await mongoClient.connect(async (err, db) => {
-            console.log("hello")
-            if (err) throw (err)
-            else {
-                console.log("connected")
-                 const voteCollection = db.db("WyattSite").collection("votes")
-                 const citizenCollection = db.db("WyattSite").collection("citizens")
-                 citizenCollection.findOne({ citizenID: citizenID }, async (err, result) => {
-                      if (err) throw (err)
-                      if (result != null) {
+    await mongoClient.connect(async (err, db) => {
+        if (err) throw (err)
+        else {
+            //Setup database collections to be used
+            const voteCollection = db.db("WyattSite").collection("votes")
+            const votingItemsCollection = db.db("WyattSite").collection("votingIssues")
+            const citizenCollection = db.db("WyattSite").collection("citizens")
+
+            //Check if the issue selected is valid
+            //TODO Make it so more than one person with the same name/ID can vote
+            votingItemsCollection.findOne({ name: issue }, async (err, voteResult) => {
+                if (err) throw err
+                if (voteResult == null) {
+                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (name)"})
+                    return
+                }
+                if (!voteResult.options.includes(vote)) {
+                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (vote)"})
+                    return
+                }
+
+                //Check if the Citizen ID is valid
+                citizenCollection.findOne({ citizenID: citizenID }, async (err, result) => {
+                    if (err) throw (err)
+                    if (result != null) {
                         if (result.hasVoted == true) {
                             res.render(__dirname + "/public/index.ejs", {statusMessage: "You've already voted!"})
                         } else {
@@ -57,17 +72,15 @@ app.post("/vote", async (req, res) => {
                                 await db.close()
                             })
                         }
-                           await db.close()
-                      } else {
-                           await db.close()
-                           res.render(__dirname + "/public/index.ejs", {statusMessage: "Enter a valid citizen ID!"})
-                      }
-                 })
-            }
-       })
-    } else {
-        res.render(__dirname + "/public/index.ejs", {statusMessage: "Don't mess with the site!"})
-    }
+                        await db.close()
+                    } else {
+                        await db.close()
+                        res.render(__dirname + "/public/index.ejs", {statusMessage: "Enter a valid citizen ID!"})
+                    }
+                })
+            })
+        }
+    })
 })
 
 app.listen(3000, () => {
