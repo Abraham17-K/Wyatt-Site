@@ -18,12 +18,18 @@ let mongoClient = new MongoClient(uri);
 // const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true});
 
 
-app.get("/", async (req, res) => {
+app.get("/", (req, res) => {
     // const HTML = await getMainPage("You Suck")
     // res.send(HTML)
     // console.log("sent!")
     // res.send("Hi")
     res.redirect("/vote")
+})
+
+app.post("/addCitizen", async (req, res) => {
+    if (req.body.citizenName == null) {
+        res.send(201);
+    }
 })
 
 app.post("/vote", async (req, res) => {
@@ -50,6 +56,7 @@ app.post("/vote", async (req, res) => {
                     res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (name)"})
                     return
                 }
+                console.log(voteResult.options)
                 if (!voteResult.options.includes(vote)) {
                     res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (vote)"})
                     return
@@ -59,7 +66,7 @@ app.post("/vote", async (req, res) => {
                 citizenCollection.findOne({ citizenID: citizenID }, async (err, result) => {
                     if (err) throw (err)
                     if (result != null) {
-                        if (result.hasVoted == true) {
+                        if (result.votes.includes(issue) == true) {
                             res.render(__dirname + "/public/index.ejs", {statusMessage: "You've already voted!"})
                         } else {
                             citizenCollection.updateOne({ citizenID: citizenID }, {

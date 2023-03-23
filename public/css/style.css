@@ -12,3 +12,9 @@ td {
 table {
     width: 90%;
 }
+body {
+    background-color:#0066FF
+}
+.statusMessage {
+    color:#FFFFFF;
+}
