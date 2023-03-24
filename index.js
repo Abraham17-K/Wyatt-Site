@@ -120,7 +120,13 @@ app.post("/vote", async (req, res) => {
     }
     const citizenID = req.body.id;
     const vote = req.body.vote;
-    const issue = req.body.issue
+    const issue = req.body.issue;
+
+    const citizenIDs = ["leo","gliggy"];
+    const issues = ["pickles?","pizza!"];
+    const votes = ["yes","no","maybe"];
+
+
     await mongoClient.connect(async (err, db) => {
         if (err) throw (err)
         else {
@@ -178,7 +184,7 @@ app.post("/vote", async (req, res) => {
 })
 
 app.listen(3000, () => {
-    console.log('started on port 3000');
+    console.log('started on port 3000! go to http://localhost:3000/');
 });
 
 function generateHTMLVotes(data) {
