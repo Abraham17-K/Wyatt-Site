@@ -13,6 +13,29 @@
     </form>
     <div class="statusMessage">
     <%- statusMessage %>
+    <!-- TODO add buttons and stuff to display data well and let people vote -->
+    <table>
+        <% for(var i=0; i < issues.length; i++) { %>
+            <tr>
+                
+              <td><%- issues[i].name %></td>
+                <td>
+                    <select name="issue" type="input">
+                <% for(var j=0; j < issues[i].options.length; j++) { %>
+                    <option value="<%- issues[i].options[j] %>"><%- issues[i].options[j] %></option>
+                <% } %>
+                    </select>
+                </td>
+              <td>
+                <table>
+                <% for(var j=0; j < issues[i].options.length; j++) { %>
+                    <td><%- issues[i].options[j] %>: <%- issues[i].votes[j] %><td>
+                <% } %>
+                </table>
+              </td>
+            </tr>
+         <% } %>
+    </table>
 </div>
 </body>
 </html>

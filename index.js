@@ -14,6 +14,11 @@ app.use(express.static(__dirname + '/public'));
 app.use(bodyParser());
 app.set('view engine', 'ejs');
 
+//TODO add a getter for votes
+//TODO make it load all of the current issues and send to client
+//TODO add a vote scheduler
+
+
 //Create SMTP info
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -53,11 +58,8 @@ app.post("/addCitizen", async (req, res) => {
     //     res.sendStatus(400); //TODO replace with res.render()
     //     return
     // }
-    var id;
-    for (var i = 0; i < 9; i++) {
-        const num = crypto.randomInt(Math.pow(10, 8), 999999999)
-        id = "" + num
-    }
+    const num = crypto.randomInt(Math.pow(10, 8), 999999999)
+    id = "" + num
     await mongoClient.connect(async (err, db) => {
         if (err) throw (err)
         const citizenCollection = db.db("WyattSite").collection("citizens")
@@ -98,7 +100,7 @@ app.post("/addCitizen", async (req, res) => {
 app.post("/addIssue", async (req, res) => {
     const {issue, options} = req.body
     if (issue == null || options == null) {
-        res.sendStatus(400) //TODO
+        res.sendStatus(400) //TODO replace with res.render()
         return
     }
 
@@ -118,10 +120,14 @@ app.post("/vote", async (req, res) => {
         res.render(__dirname + "/public/index.ejs", {statusMessage: "Please enter your citizen ID and vote!"})
         return;
     }
-    const citizenID = req.body.id;
+    var citizenID = req.body.id;
+    while (citizenID.includes("-")) {
+        citizenID = citizenID.replace("-", "")
+    }
     const vote = req.body.vote;
     const issue = req.body.issue;
 
+    //TODO close db properly
     await mongoClient.connect(async (err, db) => {
         if (err) throw (err)
         else {
@@ -131,7 +137,6 @@ app.post("/vote", async (req, res) => {
             const citizenCollection = db.db("WyattSite").collection("citizens")
 
             //Check if the issue selected is valid
-            //TODO Make it so more than one person with the same name/ID can vote
             votingItemsCollection.findOne({ name: issue }, async (err, voteResult) => {
                 if (err) throw err
                 if (voteResult == null) {
@@ -142,7 +147,6 @@ app.post("/vote", async (req, res) => {
                     res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (vote)"})
                     return
                 }
-                //TODO remove '-' from IDs
                 //Check if the Citizen ID is valid
                 citizenCollection.findOne({ citizenID: citizenID }, async (err, result) => {
                     if (err) throw (err)
@@ -157,7 +161,6 @@ app.post("/vote", async (req, res) => {
                                 }
                             }, async (err, result) => {
                                 if (err) throw (err)
-                                //TODO add option array validation
                                 votes = voteResult.votes
                                 votes[voteResult.options.indexOf(vote)] = 1 + votes[voteResult.options.indexOf(vote)]
                                 votingItemsCollection.updateOne({ name: issue }, {
@@ -186,6 +189,15 @@ function generateHTMLVotes(data) {
     return "hi!"
 }
 
-app.get("/vote", (req, res) => {
-    res.render(__dirname + "/public/index.ejs", {statusMessage: "Vote below!"})
+//TODO add error handling
+app.get("/vote", async (req, res) => {
+    await mongoClient.connect(async (err, db) => {
+        const voteCollection = db.db("WyattSite").collection("votingIssues")
+        voteCollection.find({}).toArray((err, result) => {
+            if (err) throw err
+            if (result == null) return
+            console.log(result)
+            res.render(__dirname + "/public/index.ejs", {statusMessage: "Vote below!", issues: result})
+        })
+    })
 })
