@@ -5,6 +5,8 @@
     <link action = "/vote" rel="stylesheet" href="./css/style.css"></link>
 </head>
 <body>
+    <h1>Kapanshing Online Voting System</h1>
+    <p>Welcome to KOVS, the online ballot management system in use throughout the Republic of Kapanshin. Vote on an</p>
     <form method = "POST" id="voteForm">
         <input type="text" name="id" placeholder="Enter your citizen ID"></input>
         <input type="text" name="vote" placeholder="Enter your vote"></input>
@@ -15,22 +17,33 @@
     <%- statusMessage %>
     <!-- TODO add buttons and stuff to display data well and let people vote -->
     <table>
+        <!-- Adds table for each issue -->
         <% for(var i=0; i < issues.length; i++) { %>
             <tr>
                 
               <td><%- issues[i].name %></td>
                 <td>
+                    <form method="POST" action="/vote">
                     <select name="issue" type="input">
                 <% for(var j=0; j < issues[i].options.length; j++) { %>
                     <option value="<%- issues[i].options[j] %>"><%- issues[i].options[j] %></option>
                 <% } %>
                     </select>
+                    <input type="submit" value="Vote!">
+                </form>
                 </td>
               <td>
                 <table>
-                <% for(var j=0; j < issues[i].options.length; j++) { %>
-                    <td><%- issues[i].options[j] %>: <%- issues[i].votes[j] %><td>
-                <% } %>
+                    <tr>
+                        <% for(var j=0; j < issues[i].options.length; j++) { %>
+                        <th><%- issues[i].options[j] %></th>
+                        <% } %>
+                    </tr>
+                    <tr>
+                        <% for(var j=0; j < issues[i].options.length; j++) { %>
+                        <td><%- issues[i].votes[j] %></td>
+                        <% } %>
+                    </tr>
                 </table>
               </td>
             </tr>

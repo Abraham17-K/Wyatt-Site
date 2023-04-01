@@ -116,6 +116,7 @@ app.post("/addIssue", async (req, res) => {
 })
 
 app.post("/vote", async (req, res) => {
+    console.log(JSON.stringify(req.headers));
     if (req.body.id == null || req.body.vote == null || req.body.issue == null) {
         res.render(__dirname + "/public/index.ejs", {statusMessage: "Please enter your citizen ID and vote!"})
         return;
@@ -140,11 +141,13 @@ app.post("/vote", async (req, res) => {
             votingItemsCollection.findOne({ name: issue }, async (err, voteResult) => {
                 if (err) throw err
                 if (voteResult == null) {
-                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (name)"})
+                    const issues = await getVoteList()
+                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (name)", issues: issues})
                     return
                 }
                 if (!voteResult.options.includes(vote)) {
-                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (vote)"})
+                    const issues = await getVoteList()
+                    res.render(__dirname + "/public/index.ejs", {statusMessage: "Please don't mess with the site! (vote)", issues: issues})
                     return
                 }
                 //Check if the Citizen ID is valid
@@ -152,7 +155,8 @@ app.post("/vote", async (req, res) => {
                     if (err) throw (err)
                     if (result != null) {
                         if (result.votes.includes(issue) == true) {
-                            res.render(__dirname + "/public/index.ejs", {statusMessage: "You've already voted!"})
+                            const issues = await getVoteList()
+                            res.render(__dirname + "/public/index.ejs", {statusMessage: "You've already voted!", issues: issues})
                         } else {
                             console.log(result.votes)
                             citizenCollection.updateOne({ citizenID: citizenID }, {
@@ -166,14 +170,15 @@ app.post("/vote", async (req, res) => {
                                 votingItemsCollection.updateOne({ name: issue }, {
                                     $set: {votes: votes}
                                 })
-                                res.render(__dirname + "/public/index.ejs", {statusMessage: "Voted successfully! Check back later for the results!"})
-                                // await db.close()
+                                const issues = await getVoteList()
+                                res.render(__dirname + "/public/index.ejs", {statusMessage: "Voted successfully! Check back later for the results!", issues: issues})
                             })
                         }
-                        // await db.close()
+                        await db.close()
                     } else {
-                        // await db.close()
-                        res.render(__dirname + "/public/index.ejs", {statusMessage: "Enter a valid citizen ID!"})
+                        await db.close()
+                        const issues = await getVoteList()
+                        res.render(__dirname + "/public/index.ejs", {statusMessage: "Enter a valid citizen ID!", issues: issues})
                     }
                 })
             })
@@ -185,19 +190,31 @@ app.listen(3000, () => {
     console.log('Running on http://localhost:3000/ and http://datalsmp.ga:3000');
 });
 
-function generateHTMLVotes(data) {
-    return "hi!"
-}
-
 //TODO add error handling
 app.get("/vote", async (req, res) => {
+    // await mongoClient.connect(async (err, db) => {
+    //     const voteCollection = db.db("WyattSite").collection("votingIssues")
+    //     voteCollection.find({}).toArray((err, result) => {
+    //         if (err) throw err
+    //         if (result == null) return
+    //         console.log(result)
+    //         res.render(__dirname + "/public/index.ejs", {statusMessage: "Vote below!", issues: result})
+    //     })
+    // })
+    var issues = await getVoteList()
+    console.log("rendering votes with list")
+    console.log("issues", issues)
+    res.render(__dirname + "/public/index.ejs", {statusMessage: "Vote below!", issues: issues })
+})
+
+async function getVoteList() {
     await mongoClient.connect(async (err, db) => {
         const voteCollection = db.db("WyattSite").collection("votingIssues")
         voteCollection.find({}).toArray((err, result) => {
             if (err) throw err
             if (result == null) return
             console.log(result)
-            res.render(__dirname + "/public/index.ejs", {statusMessage: "Vote below!", issues: result})
+            return result
         })
     })
-})
+}
